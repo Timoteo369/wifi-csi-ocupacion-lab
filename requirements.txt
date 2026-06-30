@@ -1,0 +1,7 @@
+numpy
+scikit-learn
+joblib
+pyserial
+requests
+python-dotenv
+xgboost

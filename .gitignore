@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Datos pesados
+data/raw/*
+data/processed/*
+*.csv
+*.npz
+
+# Permitir carpetas vacías
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store

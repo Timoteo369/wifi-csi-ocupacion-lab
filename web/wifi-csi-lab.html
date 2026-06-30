@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Conteo de personas WiFi CSI - Doble Modelo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg1: #020617;
+      --bg2: #0f172a;
+      --card: rgba(15, 23, 42, 0.90);
+      --border: rgba(148, 163, 184, 0.22);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --cyan: #38bdf8;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #fb7185;
+      --purple: #a78bfa;
+      --orange: #fb923c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 35%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.20), transparent 32%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 28px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(2, 6, 23, 0.75);
+      backdrop-filter: blur(14px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: 0.3px;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 24px auto;
+      padding: 0 18px 30px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(14px);
+    }
+
+    .status-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 210px;
+    }
+
+    .status-card::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      right: -80px;
+      top: -80px;
+      background: radial-gradient(circle, rgba(56,189,248,0.35), transparent 65%);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .main-number {
+      font-size: 82px;
+      font-weight: 900;
+      line-height: 0.95;
+      color: var(--green);
+      position: relative;
+      z-index: 2;
+    }
+
+    .main-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--cyan);
+      margin-top: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .range-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.30);
+      margin-top: 16px;
+      font-weight: 700;
+      position: relative;
+      z-index: 2;
+    }
+
+    .dot-live {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .metric {
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 18px;
+      padding: 17px;
+      min-height: 94px;
+    }
+
+    .metric-value {
+      font-size: 27px;
+      font-weight: 850;
+      color: var(--cyan);
+    }
+
+    .graphs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 300px;
+      display: block;
+      background: rgba(2, 6, 23, 0.76);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 18px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .legend.exacta {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    .legend-item {
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(2, 6, 23, 0.46);
+      border-radius: 13px;
+      padding: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .legend-item b { color: var(--text); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td {
+      padding: 10px 4px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      font-size: 14px;
+    }
+
+    td:first-child {
+      color: var(--muted);
+      width: 48%;
+    }
+
+    td:last-child {
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .footer {
+      text-align: center;
+      color: #64748b;
+      margin-top: 18px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1000px) {
+      .hero, .graphs, .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .legend, .legend.exacta {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      h1 { font-size: 27px; }
+      .main-number { font-size: 66px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Conteo de personas con WiFi CSI</h1>
+    <div class="subtitle">Doble modelo: conteo exacto 0-5 + rangos R0-R3 · ESP32 · Canal 1 · AWS puerto 3010</div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="card status-card">
+        <div class="label">Conteo final ajustado por rango</div>
+        <div id="conteoFinal" class="main-number">-</div>
+        <div id="rangoNombre" class="main-text">Sin datos</div>
+        <div class="range-pill">
+          <span class="dot-live"></span>
+          <span id="apiEstado">Esperando datos</span>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="label">Exacto raw</div>
+          <div id="conteoRaw" class="metric-value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Ajustado</div>
+          <div id="conteoAjustado" class="metric-value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Rango final</div>
+          <div id="rangoId" class="metric-value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Confianza exacta</div>
+          <div id="confExacta" class="metric-value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Confianza rango</div>
+          <div id="confRango" class="metric-value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">RSSI promedio</div>
+          <div id="rssi" class="metric-value">-</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="graphs">
+      <div class="card">
+        <div class="label">Gráfico de puntos - conteo exacto ajustado</div>
+        <canvas id="graficoExacto"></canvas>
+        <div class="legend exacta">
+          <div class="legend-item"><b>0</b><br>vacío</div>
+          <div class="legend-item"><b>1</b><br>persona</div>
+          <div class="legend-item"><b>2</b><br>personas</div>
+          <div class="legend-item"><b>3</b><br>personas</div>
+          <div class="legend-item"><b>4</b><br>personas</div>
+          <div class="legend-item"><b>5</b><br>personas</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Gráfico de puntos - rangos de ocupación</div>
+        <canvas id="graficoRangos"></canvas>
+        <div class="legend">
+          <div class="legend-item"><b>R0</b><br>Vacío</div>
+          <div class="legend-item"><b>R1</b><br>1 a 2</div>
+          <div class="legend-item"><b>R2</b><br>3</div>
+          <div class="legend-item"><b>R3</b><br>4 a 5</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="detail-grid">
+      <div class="card">
+        <div class="label">Detalle del doble modelo</div>
+        <table>
+          <tr><td>Conteo exacto raw</td><td id="dConteoRaw">-</td></tr>
+          <tr><td>Conteo ajustado por rango</td><td id="dConteoAjustado">-</td></tr>
+          <tr><td>Conteo final suavizado</td><td id="dConteoFinal">-</td></tr>
+          <tr><td>Rango raw</td><td id="dRangoRaw">-</td></tr>
+          <tr><td>Rango final suavizado</td><td id="dRangoFinal">-</td></tr>
+          <tr><td>Regla de ajuste</td><td id="dRegla">-</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="label">Detalle técnico</div>
+        <table>
+          <tr><td>CSI válidos</td><td id="csiValidos">-</td></tr>
+          <tr><td>Descartados por MAC</td><td id="descMac">-</td></tr>
+          <tr><td>Descartados por canal</td><td id="descCanal">-</td></tr>
+          <tr><td>Filas inválidas</td><td id="invalidas">-</td></tr>
+          <tr><td>Última actualización</td><td id="actualizado">-</td></tr>
+          <tr><td>Mensaje API</td><td id="mensaje">Esperando datos</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">
+      El conteo final usa el modelo exacto, pero queda restringido por el rango estimado para reducir errores grandes.
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "/ocupacion-lab-api/estado";
+    const histExacto = [];
+    const histRangos = [];
+
+    const coloresExacto = {
+      0: "#22c55e",
+      1: "#38bdf8",
+      2: "#60a5fa",
+      3: "#facc15",
+      4: "#fb923c",
+      5: "#fb7185"
+    };
+
+    const coloresRango = {
+      0: "#22c55e",
+      1: "#38bdf8",
+      2: "#facc15",
+      3: "#fb7185"
+    };
+
+    function mostrar(v, def = "-") {
+      if (v === null || v === undefined || v === "") return def;
+      return v;
+    }
+
+    function porcentaje(v) {
+      if (v === null || v === undefined || isNaN(Number(v))) return "-";
+      return Number(v).toFixed(1) + "%";
+    }
+
+    function numero(v, dec = 1) {
+      if (v === null || v === undefined || isNaN(Number(v))) return "-";
+      return Number(v).toFixed(dec);
+    }
+
+    function ajustarCanvas(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, w: rect.width, h: rect.height };
+    }
+
+    function dibujarPuntos(canvasId, historial, maxY, etiquetaY, colores) {
+      const canvas = document.getElementById(canvasId);
+      const { ctx, w, h } = ajustarCanvas(canvas);
+
+      const left = 54;
+      const right = 22;
+      const top = 26;
+      const bottom = 42;
+      const plotW = w - left - right;
+      const plotH = h - top - bottom;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(2, 6, 23, 0.92)";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
+      ctx.lineWidth = 1;
+
+      for (let yv = 0; yv <= maxY; yv++) {
+        const y = top + plotH - (yv / maxY) * plotH;
+
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(w - right, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "13px Arial";
+        ctx.fillText(etiquetaY + yv, 14, y + 4);
+      }
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "13px Arial";
+      ctx.fillText("Últimas predicciones", left, h - 13);
+
+      if (historial.length === 0) {
+        ctx.fillStyle = "#64748b";
+        ctx.font = "17px Arial";
+        ctx.fillText("Esperando datos...", left, top + 38);
+        return;
+      }
+
+      historial.forEach((valor, idx) => {
+        const x = left + idx * (plotW / Math.max(historial.length - 1, 1));
+        const y = top + plotH - (valor / maxY) * plotH;
+        const radio = idx === historial.length - 1 ? 8 : 5;
+        const color = colores[valor] || "#94a3b8";
+
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = idx === historial.length - 1 ? 20 : 8;
+        ctx.arc(x, y, radio, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        if (idx === historial.length - 1) {
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, radio + 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+    }
+
+    function dibujarGraficas() {
+      dibujarPuntos("graficoExacto", histExacto, 5, "", coloresExacto);
+      dibujarPuntos("graficoRangos", histRangos, 3, "R", coloresRango);
+    }
+
+    async function actualizar() {
+      try {
+        const res = await fetch(API_URL + "?t=" + Date.now());
+        const data = await res.json();
+
+        const conteoFinal = data.conteo_final;
+        const conteoRaw = data.conteo_exacto_raw;
+        const conteoAjustado = data.conteo_ajustado;
+        const rangoFinal = data.rango_id;
+        const rangoRaw = data.rango_id_raw;
+
+        document.getElementById("conteoFinal").textContent = mostrar(conteoFinal);
+        document.getElementById("rangoNombre").textContent = data.rango_nombre || "Sin datos";
+        document.getElementById("apiEstado").textContent = data.actualizado ? "En vivo" : "Esperando datos";
+
+        document.getElementById("conteoRaw").textContent = mostrar(conteoRaw);
+        document.getElementById("conteoAjustado").textContent = mostrar(conteoAjustado);
+        document.getElementById("rangoId").textContent = rangoFinal !== null && rangoFinal !== undefined ? "R" + rangoFinal : "-";
+        document.getElementById("confExacta").textContent = porcentaje(data.confianza_exacta);
+        document.getElementById("confRango").textContent = porcentaje(data.confianza_rango);
+        document.getElementById("rssi").textContent = numero(data.rssi_promedio, 1) + " dBm";
+
+        document.getElementById("dConteoRaw").textContent = mostrar(conteoRaw);
+        document.getElementById("dConteoAjustado").textContent = mostrar(conteoAjustado);
+        document.getElementById("dConteoFinal").textContent = mostrar(conteoFinal);
+        document.getElementById("dRangoRaw").textContent =
+          rangoRaw !== null && rangoRaw !== undefined ? "R" + rangoRaw + " · " + (data.rango_nombre_raw || "") : "-";
+        document.getElementById("dRangoFinal").textContent =
+          rangoFinal !== null && rangoFinal !== undefined ? "R" + rangoFinal + " · " + (data.rango_nombre || "") : "-";
+        document.getElementById("dRegla").textContent = mostrar(data.regla_ajuste);
+
+        document.getElementById("csiValidos").textContent = mostrar(data.csi_validos);
+        document.getElementById("descMac").textContent = mostrar(data.descartados_mac);
+        document.getElementById("descCanal").textContent = mostrar(data.descartados_canal);
+        document.getElementById("invalidas").textContent = mostrar(data.filas_invalidas);
+        document.getElementById("actualizado").textContent = mostrar(data.actualizado);
+        document.getElementById("mensaje").textContent = mostrar(data.mensaje);
+
+        if (conteoFinal !== null && conteoFinal !== undefined) {
+          histExacto.push(Number(conteoFinal));
+          if (histExacto.length > 45) histExacto.shift();
+        }
+
+        if (rangoFinal !== null && rangoFinal !== undefined) {
+          histRangos.push(Number(rangoFinal));
+          if (histRangos.length > 45) histRangos.shift();
+        }
+
+        dibujarGraficas();
+
+      } catch (e) {
+        document.getElementById("apiEstado").textContent = "API no disponible";
+        document.getElementById("mensaje").textContent = "Error conectando con /ocupacion-lab-api/estado";
+        dibujarGraficas();
+      }
+    }
+
+    window.addEventListener("resize", dibujarGraficas);
+    setInterval(actualizar, 2000);
+    actualizar();
+  </script>
+</body>
+</html>
